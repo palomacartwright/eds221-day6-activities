@@ -1,0 +1,127 @@
+---
+title: "Lobster Data Exploration"
+author: "Paloma Cartwright"
+date: "16/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+## Reading in the data set 
+
+```{r}
+lobsters <- read_csv(here("data","Lobster_Abundance_All_Years_20210412.csv"), na = c("-99999", "")) %>% 
+  clean_names() %>% 
+  uncount(count)
+```
+
+## Finding counts and mean sizes by site and year 
+
+Create a summary table that finds the total counts, mean carapace lengths by site and year 
+
+```{r}
+lobster_summary <- lobsters %>% 
+  group_by(site, year) %>% 
+  summarize(total_counts = n(), 
+            mean_carapace_length = mean(size_mm, na.rm = TRUE))
+
+ggplot(data = lobster_summary, aes(x = year, y = total_counts)) +
+  geom_point(aes(color = site)) + geom_line(aes(color = site)) +
+  labs(title = "Total Lobsters Observed by Year for Each Site", 
+       x = "Year", 
+       y = "Total Lobsters", 
+       color = "Site")
+
+```
+
+## Find the proportion of legal lobsters for each site for 2020
+
+
+```{r}
+legal_size <- 79.76
+
+lobster_data_2020 <- lobsters %>%
+  filter(year == 2020) %>%
+  mutate(legal = case_when(size_mm < legal_size ~ "No",
+                           size_mm >= legal_size ~ "Yes")) %>%
+  group_by(site, legal) %>%
+  summarize(number = n())
+
+ggplot(data = lobster_data_2020, aes(x = site, y = number)) +
+  geom_col(position = "fill") + 
+  aes(fill = legal) + 
+  labs(title = "Proportion of Legal Lobsters in California dive sites in 2020", 
+       x = "Site", 
+       y = "Proportion", 
+       fill = "Is Legal?")
+```
+NAPL and IVEE are in MPAs so the lobsters have more chances to grow to maturity under protection that lobsters outside of the marine protected areas.
+
+## Task 3: Random Lobster Wrangling
+
+#### filter() practice 
+
+Create and store a subset from IVEE CARP and NAPL 
+```{r}
+ex_1 <- lobsters %>%
+  filter(site == c("IVEE", "CARP", "NAPL"))
+```
+
+Create a subset that only contains lobsters observed in August 
+```{r}
+ex_2 <- lobsters %>% 
+  filter(month == 8)
+```
+
+```{r}
+ex_3 <- lobsters %>% 
+  filter(site == "AQUE" | size_mm > 70)
+```
+
+```{r}
+ex_4 <- lobsters %>% 
+  filter(!(site == "NAPL"))
+```
+
+#### group_by() %>% summarize() practice
+
+```{r}
+ex_5 <- lobsters %>% 
+  group_by(site) %>% 
+  summarize(mean_lobster_carapace = mean(size_mm, na.rm = TRUE), 
+            std_lobster_carapace = sd(size_mm, na.rm = TRUE))
+
+```
+
+```{r}
+ex_6 <- lobsters %>% 
+  group_by(site, month) %>% 
+  summarize(max_length = max(size_mm, na.rm = TRUE))
+```
+
+#### mutate() practice
+
+```{r}
+ex_7 <- lobsters %>% 
+  mutate(size_cm = size_mm/10) %>% 
+  mutate(site = tolower(site)) %>% 
+  mutate(area = as.character(area))
+```
+
+#### case_when() practice 
+
+```{r}
+ex_8 <- lobsters %>%
+  mutate(size_bin = case_when(size_mm <= 70 ~ "small",
+                              size_mm > 70 ~ "large")) %>% 
+  mutate(designation = case_when(site %in% c("IVEE", "NAPL") ~ "MPA", 
+                                 !(site %in% c("IVEE", "NAPL")) ~ "not MPA"))
+```
+
+ 
+ 
